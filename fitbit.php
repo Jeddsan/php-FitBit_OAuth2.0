@@ -1,4 +1,7 @@
 <?php
+//Create a connection to the database
+//Initalize the username and password variables
+
 //Values
 $client_id="CLIENT_ID"; //Go to https://dev.fitbit.com/apps
 $client_secret="CLIENT_SECRET"; //Got to https://dev.fitbit.com/apps
@@ -26,7 +29,23 @@ if(isset($_GET["code"])){
 
   $auth = json_decode($server_output, true);
   var_dump($auth);
-  $userid=$data['user_id'];
+  $userid=$auth['user_id'];
+  $access_token=$auth["access_token"];
+  $refresh_token=$auth["refresh_token"];
+  
+  //You need two tables with the name "fitbit_users" and "user".
+  //In the table fitbit_users you save the access_token, the refresh_token and the user_id.
+  //In the user table you save only the user id.
+  
+  if($userid!=""){
+    $sql_search=mysqli_query($con, "SELECT * FROM fitbit_users fu, user u WHERE fu.fitbit_id=u.fitbit_id AND u.username='$username' AND u.password='$passwordsha512'");
+    if(mysqli_num_rows($sql_search)==1){
+      $sql=mysqli_query($con,"UPDATE fitbit_users SET access_token='$access_token', refresh_token='$refresh_token' WHERE fitbit_id='$userid'");
+    }else{
+      $sql=mysqli_query($con,"UPDATE user SET fitbit_id='$userid' WHERE username='$username' AND password='$passwordsha512'");
+      $sql=mysqli_query($con,"INSERT INTO fitbit_users (fitbit_id,access_token,refresh_token) VALUES ('$userid','$access_token','$refresh_token')");
+    }
+  }
   // Now save the user_id in your database. Save the refresh token as well. For every query, now you need the access_token.
 }
 echo "<a href='https://www.fitbit.com/oauth2/authorize?response_type=code&client_id=$client_id&redirect_uri=$redirect_uri&expires_in=$expires_in&scope=activity%20nutrition%20heartrate%20location%20nutrition%20profile%20settings%20sleep%20social%20weight'>
